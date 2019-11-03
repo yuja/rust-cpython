@@ -45,7 +45,7 @@ base_case = '''
             $size:expr,
             { $( $class_visibility:tt )* },
             $gc:tt,
-            /* data: */ [ $( { $data_offset:expr, $data_name:ident, $data_ty:ty } )* ]
+            /* data: */ [ $( { $data_offset:expr, $data_name:ident, $data_ty:ty, $init_expr:expr, $init_ty:ty } )* ]
         }
         $slots:tt { $( $imp:item )* } $members:tt
     } => {
@@ -104,7 +104,7 @@ base_case = '''
 
         py_coerce_item! {
             impl $crate::py_class::BaseObject for $class {
-                type InitType = ( $( $data_ty, )* );
+                type InitType = ( $( $init_ty, )* );
 
                 #[inline]
                 fn size() -> usize {
@@ -118,7 +118,7 @@ base_case = '''
                 ) -> $crate::PyResult<$crate::PyObject>
                 {
                     let obj = <$base_type as $crate::py_class::BaseObject>::alloc(py, ty, ())?;
-                    $( $crate::py_class::data_init::<$data_ty>(py, &obj, $data_offset, $data_name); )*
+                    $( $crate::py_class::data_init::<$data_ty>(py, &obj, $data_offset, $init_expr); )*
                     Ok(obj)
                 }
 
@@ -131,7 +131,7 @@ base_case = '''
         $($imp)*
         py_coerce_item! {
             impl $class {
-                fn create_instance(py: $crate::Python $( , $data_name : $data_ty )* ) -> $crate::PyResult<$class> {
+                fn create_instance(py: $crate::Python $( , $data_name : $init_ty )* ) -> $crate::PyResult<$class> {
                     let obj = unsafe {
                         <$class as $crate::py_class::BaseObject>::alloc(
                             py, &py.get_type::<$class>(), ( $($data_name,)* )
@@ -342,7 +342,9 @@ def data_decl():
                 {
                     $crate::py_class::data_offset::<$data_type>($size),
                     $data_name,
-                    $data_type
+                    $data_type,
+                    /* init_expr: */ $data_name,
+                    /* init_ty: */ $data_type
                 }
             ]
         }
@@ -376,7 +378,9 @@ def shared_data_decl():
                 {
                     $crate::py_class::data_offset::<$crate::PySharedRefCell<$data_type>>($size),
                     $data_name,
-                    $crate::PySharedRefCell<$data_type>
+                    /* data_ty: */ $crate::PySharedRefCell<$data_type>,
+                    /* init_expr: */ $crate::PySharedRefCell::<$data_type>::new($data_name),
+                    /* init_ty: */ $data_type
                 }
             ]
         }

@@ -484,7 +484,7 @@ mod test {
         let gil = Python::acquire_gil();
         let owner = {
             let py = gil.python();
-            Owner::create_instance(py, PySharedRefCell::new("new".to_owned())).unwrap()
+            Owner::create_instance(py, "new".to_owned()).unwrap()
         };
         (gil, owner)
     }
